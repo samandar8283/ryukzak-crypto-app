@@ -1,0 +1,16 @@
+altgraph==0.17.5
+click==8.3.3
+colorama==0.4.6
+packaging==26.2
+pefile==2024.8.26
+pyinstaller==6.20.0
+pyinstaller-hooks-contrib==2026.4
+PyQt5==5.15.9
+pyqt5-plugins==5.15.9.2.3
+PyQt5-Qt5==5.15.2
+pyqt5-tools==5.15.9.3.3
+PyQt5_sip==12.18.0
+python-dotenv==1.2.2
+pywin32-ctypes==0.2.3
+qt5-applications==5.15.2.2.3
+qt5-tools==5.15.2.1.3
