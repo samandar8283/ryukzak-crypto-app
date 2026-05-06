@@ -71,8 +71,15 @@ class MainWindow(QMainWindow):
 
         errors = []
 
-        if self.w != sorted(self.w):
-            errors.append("w o‘suvchi bo‘lishi kerak")
+        original_w = self.w.copy()
+        self.w = sorted(self.w)
+        if original_w != self.w:
+            self.log("📊 w tartiblandi:")
+            self.log(f"   oldin: {original_w}")
+            self.log(f"   keyin: {self.w}")
+
+        if not self.is_superincreasing(self.w):
+            errors.append("w super-o‘suvchi (har element oldingilar yig‘indisidan katta) bo‘lishi kerak")
 
         if self.q <= sum(self.w):
             errors.append("q > sum(w) bo‘lishi kerak")
@@ -89,6 +96,65 @@ class MainWindow(QMainWindow):
         self.b = generate_public_key(self.w, self.r, self.q)
         self.set_success(f"Kalitlar to‘g‘ri. Public key: {self.b}")
 
+    # -------------------------
+    # Superincreasing tekshirish
+    # -------------------------
+    def is_superincreasing(self, w):
+        total = 0
+        for x in w:
+            if x <= total:
+                return False
+            total += x
+        return True
+    
+    # -------------------------
+    # Modular inverse
+    # -------------------------
+    def mod_inverse_log(self, r, q):
+        self.log(f"🔍 Modular inverse topish: {r} mod {q}")
+        self.log(f"📌 r*x + q*y = 1")
+        self.log(f"🔁 Extended Euclid boshlanishi: r={r}, q={q}")
+
+        g, x, y = self.extended_gcd_log(r, q)
+
+        self.log(f"📊 gcd({r},{q}) = {g}")
+
+        if g != 1:
+            self.log("❌ Inverse mavjud emas!")
+            return None
+
+        if x < 0:
+            self.log(f"📌 x = {x} (negativ, shuning uchun mod q bilan to‘g‘rilanadi)")
+            self.log(f"   {x} mod {q} = {x % q}")
+        inv = x % q
+
+        self.log(f"✅ Inverse topildi:")
+        self.log(f"   {r}⁻¹ mod {q} = {inv}")
+
+        return inv
+    
+    # -------------------------
+    # Extended Euclidean Algorithm (for modular inverse)
+    # -------------------------
+    def extended_gcd_log(self, r, q):
+
+        if q == 0:
+            self.log(f"📌 Base case: gcd = {r}")
+            return r, 1, 0
+
+        self.log(f"➡ {r} = {q} * ({r // q}) + {r % q}")
+
+        g, x1, y1 = self.extended_gcd_log(q, r % q)
+
+        x = y1
+        y = x1 - (r // q) * y1
+
+        self.log(f"⬅ Back step:")
+        self.log(f"   x = {y1}")
+        self.log(f"   y = {x1} - ({r}//{q})*{y1} = {y}")
+
+        return g, x, y
+    
     # -------------------------
     # AUTO GENERATE
     # -------------------------
@@ -198,7 +264,7 @@ class MainWindow(QMainWindow):
         self.log("🔓 DECRYPTION BOSHLANDI")
         self.log(f"Cipher: {cipher}")
 
-        r_inv = pow(self.r, -1, self.q)
+        r_inv = self.mod_inverse_log(self.r, self.q)
 
         self.log(f"\nr⁻¹ mod q = {r_inv}")
 
