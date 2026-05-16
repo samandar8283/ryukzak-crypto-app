@@ -4,9 +4,8 @@ from math import gcd
 from PyQt5.QtWidgets import QMainWindow, QApplication
 
 from ui_main import Ui_MainWindow
-from knapsack import (
+from utils import (
     generate_public_key,
-    decrypt,
     text_to_bits,
     bits_to_text
 )
@@ -32,7 +31,7 @@ class MainWindow(QMainWindow):
         self.ui.resetBtn.clicked.connect(self.reset_all)
 
     # -------------------------
-    # LOG SYSTEM (SIMPLE)
+    # LOG SYSTEM
     # -------------------------
     def log(self, msg):
         self.ui.logText.append(msg)
@@ -111,49 +110,103 @@ class MainWindow(QMainWindow):
     # Modular inverse
     # -------------------------
     def mod_inverse_log(self, r, q):
-        self.log(f"🔍 Modular inverse topish: {r} mod {q}")
-        self.log(f"📌 r*x + q*y = 1")
-        self.log(f"🔁 Extended Euclid boshlanishi: r={r}, q={q}")
 
-        g, x, y = self.extended_gcd_log(r, q)
+        self.log("🔍 Modular inverse hisoblash")
+        self.log("📌 Tenglama:")
+        self.log(f"   {r}·x + {q}·y = 1")
+        self.log("")
 
-        self.log(f"📊 gcd({r},{q}) = {g}")
+        # -------------------------
+        # Euclidean Algorithm
+        # -------------------------
+        self.log("🔹 1-bosqich: EKUB topish (Euclidean Algorithm)")
 
-        if g != 1:
-            self.log("❌ Inverse mavjud emas!")
+        a, b = q, r
+        equations = []
+
+        while b != 0:
+            quotient = a // b
+            remainder = a % b
+
+            self.log(f"   {a} = {b}·{quotient} + {remainder}")
+
+            equations.append((a, b, quotient, remainder))
+
+            a, b = b, remainder
+
+        gcd = a
+
+        self.log("")
+        self.log(f"📊 gcd({r}, {q}) = {gcd}")
+
+        if gcd != 1:
+            self.log("❌ gcd ≠ 1, inverse mavjud emas.")
             return None
 
+        # -------------------------
+        # Back substitution
+        # -------------------------
+        self.log("")
+        self.log("🔹 2-bosqich: Orqaga almashtirish (Back Substitution)")
+        self.log("📌 Maqsad: 1 ni r va q orqali ifodalash")
+        self.log("")
+
+        # Oxirgi 1 chiqqan tenglama
+        A, B, Q, R = equations[-2]
+
+        self.log(f"   1 = {A} - {B}·{Q}")
+
+        expr = f"{A} - {B}·{Q}"
+
+        current = B
+
+        # Teskaridan yurish
+        for i in range(len(equations) - 3, -1, -1):
+
+            A, B, Q, R = equations[i]
+
+            if R == current:
+
+                replacement = f"({A} - {B}·{Q})"
+
+                expr = expr.replace(str(current), replacement, 1)
+
+                self.log(f"   1 = {expr}")
+
+                current = B
+
+        # -------------------------
+        # Extended Euclid orqali inverse
+        # -------------------------
+        def extended_gcd(a, b):
+            if b == 0:
+                return a, 1, 0
+
+            g, x1, y1 = extended_gcd(b, a % b)
+
+            x = y1
+            y = x1 - (a // b) * y1
+
+            return g, x, y
+
+        _, x, y = extended_gcd(r, q)
+
+        self.log("")
+        self.log("🔹 3-bosqich: Yakuniy ko‘rinish")
+        self.log(f"   1 = {r}·({x}) + {q}·({y})")
+
         if x < 0:
-            self.log(f"📌 x = {x} (negativ, shuning uchun mod q bilan to‘g‘rilanadi)")
+            self.log("")
+            self.log("📌 Inverse manfiy chiqdi.")
             self.log(f"   {x} mod {q} = {x % q}")
-        inv = x % q
 
-        self.log(f"✅ Inverse topildi:")
-        self.log(f"   {r}⁻¹ mod {q} = {inv}")
+        inverse = x % q
 
-        return inv
-    
-    # -------------------------
-    # Extended Euclidean Algorithm (for modular inverse)
-    # -------------------------
-    def extended_gcd_log(self, r, q):
+        self.log("")
+        self.log("✅ Natija:")
+        self.log(f"   {r}⁻¹ mod {q} = {inverse}")
 
-        if q == 0:
-            self.log(f"📌 Base case: gcd = {r}")
-            return r, 1, 0
-
-        self.log(f"➡ {r} = {q} * ({r // q}) + {r % q}")
-
-        g, x1, y1 = self.extended_gcd_log(q, r % q)
-
-        x = y1
-        y = x1 - (r // q) * y1
-
-        self.log(f"⬅ Back step:")
-        self.log(f"   x = {y1}")
-        self.log(f"   y = {x1} - ({r}//{q})*{y1} = {y}")
-
-        return g, x, y
+        return inverse
     
     # -------------------------
     # AUTO GENERATE
@@ -297,6 +350,8 @@ class MainWindow(QMainWindow):
             bits.extend(block_bits)
 
         text = bits_to_text(bits)
+
+        self.log(f"\nFull bits: {bits}")
 
         self.ui.inputText.setText(text)
 
